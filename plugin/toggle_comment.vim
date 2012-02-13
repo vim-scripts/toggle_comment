@@ -2,7 +2,6 @@
 " Le mapping des touches
 map <silent> q       mZ:call ToggleComment_toggle()<CR>`Z
 map <silent> <S-q>   mZ:call ToggleComment_comment()<CR>`Z
-"map <silent> <C-q>   mZ:call ToggleComment_uncomment()<CR>`Z
 map <silent> <A-q>   mZ:call ToggleComment_uncomment()<CR>`Z
 
 command! -range Ct <line1>,<line2>call ToggleComment_toggle()
@@ -12,10 +11,8 @@ command! -range Cu <line1>,<line2>call ToggleComment_uncomment()
 
 " Correspondance 'syntax' / 'comment symbol'
 let s:comment_symbol = {
-  \  'python'	:  '#',
   \  'fortran'	:  'C',
-  \  'vim'	:  '"',
-  \  'c'	:  '//',
+  \  'matlab'	:  '%',
   \ }
 
 " Indique les 'syntax' où la ligne doit rester inchangée 
@@ -44,22 +41,73 @@ function! ToggleComment_GetSeparator(cs)
 endfunction
 
 
-function ToggleComment_init()
-  if !exists("b:current_syntax")
+function! ToggleComment_GetCommentSymbol()
+  " Check filetype
+  let cft=&ft
+  if cft=='' && exists("b:current_syntax")
+    let cft=b:current_syntax
+  endif
+  if cft==''
+    return '-1'
+  endif
+  " Find a value for the CommentSymbol
+  " 1) script list first
+  let cs=get(s:comment_symbol,cft)
+  if cs!='0'
+    return cs
+  endif
+  " 2) check the 'commentstring' option
+  let cs=''
+  if match(&commentstring,"%s$")!=-1
+    let cs=substitute(&commentstring,'\(^.*\)\(%s.*$\)','\1','')
+    if cs!=''
+      return cs
+    endif
+  endif
+  " 3) check the 'comments' option
+  let cs=''
+  let _lco=&comments.','
+  let _cont=1
+  while _cont!=0
+    let _o=matchstr(_lco,'.\{-},\@=') 
+    let _lco=substitute(_lco,'.\{-},','','')
+    if match(_o,':')==0
+      let cs=substitute(_o,':','','')
+      let _cont=0
+    endif
+    if match(_lco,',')==-1
+      let _cont=0
+    endif
+  endwhile
+  if cs!=''
+    return cs
+  endif
+  " :( we find nothing
+  return ''
+endfunction
+
+
+function! ToggleComment_init()
+  "
+  let cs=ToggleComment_GetCommentSymbol()
+  if cs=='-1'
     echohl ErrorMsg
-    echo 'comment plugin : "b:current_syntax" is not defined'
+    echo 'comment plugin : filetype is not defined'
+    echohl None
     return [0,'','']
   endif
-  let cs=get(s:comment_symbol,b:current_syntax)
-  if cs=='0'
+  if cs==''
     echohl ErrorMsg
-    echo 'comment plugin : '.b:current_syntax.' not supported yet'
+    echo 'comment plugin : comment symbol not found'
+    echohl None
     return [0,'','']
   endif
+  "
   let sep=ToggleComment_GetSeparator(cs)
   if sep==''
     echohl ErrorMsg
     echo 'comment plugin : cannot find correct separator'
+    echohl None
     return [0,'','']
   endif
   return [1,cs,sep]
