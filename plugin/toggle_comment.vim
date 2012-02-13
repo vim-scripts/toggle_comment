@@ -14,6 +14,12 @@ let s:comment_symbol = {
   \  'fortran'	:  'C',
   \  'matlab'	:  '%',
   \ }
+"  \  'rien'    :  '~',
+"  \  'python'	:  '#',
+"  \  'fortran'	:  'C',
+"  \  'vim'	:  '"',
+"  \  'c'	:  '//',
+"  \ }
 
 " Indique les 'syntax' où la ligne doit rester inchangée 
 let s:comment_in_place = {
@@ -41,6 +47,13 @@ function! ToggleComment_GetSeparator(cs)
 endfunction
 
 
+function! ToggleComment_CleanCommentSymbol(in)
+  let cs=a:in
+  let cs=substitute(cs,'\s*$','','')
+  return cs
+endfunction
+
+
 function! ToggleComment_GetCommentSymbol()
   " Check filetype
   let cft=&ft
@@ -54,12 +67,14 @@ function! ToggleComment_GetCommentSymbol()
   " 1) script list first
   let cs=get(s:comment_symbol,cft)
   if cs!='0'
+    let cs=ToggleComment_CleanCommentSymbol(cs)
     return cs
   endif
   " 2) check the 'commentstring' option
   let cs=''
   if match(&commentstring,"%s$")!=-1
     let cs=substitute(&commentstring,'\(^.*\)\(%s.*$\)','\1','')
+    let cs=ToggleComment_CleanCommentSymbol(cs)
     if cs!=''
       return cs
     endif
@@ -79,6 +94,7 @@ function! ToggleComment_GetCommentSymbol()
       let _cont=0
     endif
   endwhile
+  let cs=ToggleComment_CleanCommentSymbol(cs)
   if cs!=''
     return cs
   endif
