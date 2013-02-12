@@ -13,6 +13,7 @@ command! -range Cu <line1>,<line2>call ToggleComment_uncomment()
 let s:comment_symbol = {
   \  'fortran'	:  'C',
   \  'matlab'	:  '%',
+  \  'doctest'	:  '',
   \ }
 "  \  'rien'    :  '~',
 "  \  'python'	:  '#',
@@ -146,9 +147,11 @@ function! ToggleComment_toggle()
   endif
   let dummy_cs=substitute(cs,".","X","g")
   let dot_ncs=substitute(cs,".","\.","g")
+  let last_search=@/
   execute 's'.sep.'\(^\s\+\)\('.cs.'\)'.sep.'\2\1'.sep.'e'
   execute 's'.sep.'^\('.cs.'\)\@!.\+'.sep.dummy_cs.cs.'\0'.sep.'e'
   execute 's'.sep.'^'.dot_ncs.sep.sep.'e'
+  let @/=last_search
 endfunction
 
 
